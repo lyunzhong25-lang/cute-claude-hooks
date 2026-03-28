@@ -10,7 +10,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 MAGENTA='\033[38;5;206m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 # ========== 路径定义 ==========
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -44,63 +44,6 @@ get_cli_path() {
     echo "$cli_path|$cli_bak"
 }
 
-# ========== 创建备份 ==========
-create_backup() {
-    local cli_path="$1"
-    local cli_bak="$2"
-
-    if [ ! -f "$cli_bak" ]; then
-        cp "$cli_path" "$cli_bak"
-        echo -e "${GREEN}✅ 已创建备份: cli.bak.js${NC}"
-    else
-        echo -e "${YELLOW}ℹ️  备份已存在，跳过创建${NC}"
-    fi
-}
-
-# ========== 执行汉化 ==========
-do_localize() {
-    local cli_path="$1"
-    local count=0
-    local total=0
-
-    # 统计总行数
-    total=$(grep -c "^[^#]" "$KEYWORD_FILE" 2>/dev/null || echo "0")
-
-    echo -e "${MAGENTA}🌸 开始汉化 Claude Code...${NC}"
-    echo ""
-
-    # 读取关键词配置文件
-    while IFS='|' read -r keyword translation || [ -n "$keyword" ]; do
-        # 跳过空行和注释
-        [ -z "$keyword" ] && continue
-        [[ "$keyword" =~ ^[[:space:]]*# ]] && continue
-
-        # 去除首尾空格
-        keyword=$(echo "$keyword" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-        translation=$(echo "$translation" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-
-        [ -z "$keyword" ] && continue
-
-        # 转义特殊字符
-        local escaped_key
-        escaped_key=$(echo "$keyword" | sed 's/[\/&]/\\&/g' | sed 's/\n/\\n/g')
-
-        # 执行替换（同时处理单引号和双引号包裹的字符串）
-        if sed -i.bak "s/\"${escaped_key}\"/\"${translation}\"/g" "$cli_path" 2>/dev/null; then
-            count=$((count + 1))
-            echo -e "  ${GREEN}✓${NC} $keyword ${YELLOW}→${NC} $translation"
-        fi
-
-    done < "$KEYWORD_FILE"
-
-    # 清理临时备份
-    rm -f "${cli_path}.bak"
-
-    echo ""
-    echo -e "${MAGENTA}🌸 汉化完成！共处理 $count 个词条${NC}"
-    echo -e "${YELLOW}ℹ️  重启 Claude Code 即可生效${NC}"
-}
-
 # ========== 主函数 ==========
 main() {
     echo -e "${MAGENTA}╔══════════════════════════════════════════╗${NC}"
@@ -124,15 +67,65 @@ main() {
     echo ""
 
     # 创建备份
-    create_backup "$cli_path" "$cli_bak"
+    if [ ! -f "$cli_bak" ]; then
+        cp "$cli_path" "$cli_bak"
+        echo -e "${GREEN}✅ 已创建备份: cli.bak.js${NC}"
+    else
+        echo -e "${YELLOW}ℹ️  备份已存在，跳过创建${NC}"
+    fi
 
-    # 从备份恢复后执行汉化
+    # 从备份恢复
     if [ -f "$cli_bak" ]; then
         cp "$cli_bak" "$cli_path"
     fi
 
-    # 执行汉化
-    do_localize "$cli_path"
+    # 优先使用 Node.js 脚本（安全替换，只替换 description 字段）
+    local js_script="$SCRIPT_DIR/localize.js"
+    if [ -f "$js_script" ] && command -v node &> /dev/null; then
+        echo -e "${GREEN}🔧 使用 Node.js 安全替换模式${NC}"
+        echo ""
+        node "$js_script"
+    else
+        echo -e "${YELLOW}⚠️  Node.js 脚本不可用，使用 sed 模式（可能不够精确）${NC}"
+        echo ""
+        # Fallback: sed 模式（仅替换 description:"..." 中的内容）
+        do_localize_sed "$cli_path"
+    fi
+}
+
+# ========== sed 模式（备选方案）==========
+do_localize_sed() {
+    local cli_path="$1"
+    local count=0
+
+    echo -e "${MAGENTA}🌸 开始汉化（sed 模式）...${NC}"
+    echo ""
+
+    while IFS='|' read -r keyword translation || [ -n "$keyword" ]; do
+        [ -z "$keyword" ] && continue
+        [[ "$keyword" =~ ^[[:space:]]*# ]] && continue
+
+        keyword=$(echo "$keyword" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        translation=$(echo "$translation" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+        [ -z "$keyword" ] && continue
+
+        local escaped_key
+        escaped_key=$(echo "$keyword" | sed 's/[\/&]/\\&/g')
+
+        # 安全替换：只替换 description:"..." 中的内容
+        if sed -i.bak "s/description:\"${escaped_key}\"/description:\"${translation}\"/g" "$cli_path" 2>/dev/null; then
+            count=$((count + 1))
+            echo -e "  ${GREEN}✓${NC} $keyword ${YELLOW}→${NC} $translation"
+        fi
+
+    done < "$KEYWORD_FILE"
+
+    rm -f "${cli_path}.bak"
+
+    echo ""
+    echo -e "${MAGENTA}🌸 汉化完成！共处理 $count 个词条${NC}"
+    echo -e "${YELLOW}ℹ️  重启 Claude Code 即可生效${NC}"
 }
 
 main "$@"
