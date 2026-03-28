@@ -9,7 +9,13 @@ on:
 
 jobs:
   test-localization:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+      fail-fast: false
+
+    runs-on: ${{ matrix.os }}
+
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
@@ -25,7 +31,8 @@ jobs:
           echo "✅ Claude Code installed"
           claude --version || echo "Version check completed"
 
-      - name: 🌸 Install Localization Hooks
+      - name: 🌸 Install Localization Hooks (Unix)
+        if: runner.os != 'Windows'
         run: |
           mkdir -p ~/.claude/hooks
           mkdir -p ~/.claude/localize
@@ -33,9 +40,22 @@ jobs:
           chmod +x ~/.claude/hooks/tool-tips-post.sh
           cp localize/keyword.conf ~/.claude/localize/ 2>/dev/null || true
           cp localize/localize.sh ~/.claude/localize/ 2>/dev/null || true
-          echo "✅ Hooks and localize files installed"
+          echo "✅ Hooks and localize files installed (Unix)"
 
-      - name: 🧪 Test Hook Script
+      - name: 🌸 Install Localization Hooks (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          mkdir -p ~/.claude/hooks
+          mkdir -p ~/.claude/localize
+          cp tool-tips-post.sh ~/.claude/hooks/
+          chmod +x ~/.claude/hooks/tool-tips-post.sh
+          cp localize/keyword.conf ~/.claude/localize/ 2>/dev/null || true
+          cp localize/localize.sh ~/.claude/localize/ 2>/dev/null || true
+          echo "✅ Hooks and localize files installed (Windows)"
+
+      - name: 🧪 Test Hook Script (Unix)
+        if: runner.os != 'Windows'
         run: |
           if [ -f ~/.claude/hooks/tool-tips-post.sh ]; then
             bash -n ~/.claude/hooks/tool-tips-post.sh && echo "✅ Syntax check passed"
@@ -44,31 +64,51 @@ jobs:
             exit 1
           fi
 
-      - name: 🌸 Test Hook Output (中文提示)
+      - name: 🧪 Test Hook Script (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          if [ -f ~/.claude/hooks/tool-tips-post.sh ]; then
+            bash -n ~/.claude/hooks/tool-tips-post.sh && echo "✅ Syntax check passed"
+          else
+            echo "❌ Hook file not found"
+            exit 1
+          fi
+
+      - name: 🌸 Test Hook Output - 中文提示 (Unix)
+        if: runner.os != 'Windows'
         run: |
           echo "=== 模拟 Hook 输入测试 ==="
-
-          # 测试 Read 工具
           echo '{"tool_name": "Read", "file_path": "/test/example.py"}' | bash ~/.claude/hooks/tool-tips-post.sh
-          # 测试 Write 工具
           echo '{"tool_name": "Write", "file_path": "/test/newfile.js"}' | bash ~/.claude/hooks/tool-tips-post.sh
-          # 测试 Edit 工具
           echo '{"tool_name": "Edit", "file_path": "/src/config.json"}' | bash ~/.claude/hooks/tool-tips-post.sh
-          # 测试 Bash 工具
           echo '{"tool_name": "Bash", "command": "npm install", "description": "安装依赖"}' | bash ~/.claude/hooks/tool-tips-post.sh
-          # 测试 Glob 工具
           echo '{"tool_name": "Glob", "pattern": "**/*.ts"}' | bash ~/.claude/hooks/tool-tips-post.sh
-          # 测试 Grep 工具
+          echo '{"tool_name": "Grep", "pattern": "function"}' | bash ~/.claude/hooks/tool-tips-post.sh
+          echo ""
+          echo "✅ Hook 中文提示测试完成!"
+
+      - name: 🌸 Test Hook Output - 中文提示 (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          echo "=== 模拟 Hook 输入测试 ==="
+          echo '{"tool_name": "Read", "file_path": "/test/example.py"}' | bash ~/.claude/hooks/tool-tips-post.sh
+          echo '{"tool_name": "Write", "file_path": "/test/newfile.js"}' | bash ~/.claude/hooks/tool-tips-post.sh
+          echo '{"tool_name": "Edit", "file_path": "/src/config.json"}' | bash ~/.claude/hooks/tool-tips-post.sh
+          echo '{"tool_name": "Bash", "command": "npm install", "description": "安装依赖"}' | bash ~/.claude/hooks/tool-tips-post.sh
+          echo '{"tool_name": "Glob", "pattern": "**/*.ts"}' | bash ~/.claude/hooks/tool-tips-post.sh
           echo '{"tool_name": "Grep", "pattern": "function"}' | bash ~/.claude/hooks/tool-tips-post.sh
           echo ""
           echo "✅ Hook 中文提示测试完成!"
 
       - name: 📋 Generate Test Report
         run: |
-          echo "## 🌸 Localization Test Report" >> $GITHUB_STEP_SUMMARY
+          echo "## 🌸 Localization Test Report (${{ matrix.os }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### ✅ Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- OS: ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
           echo "- Claude Code: Installed" >> $GITHUB_STEP_SUMMARY
           echo "- Hook Files: $(ls ~/.claude/hooks/ 2>/dev/null | wc -l) files" >> $GITHUB_STEP_SUMMARY
           echo "- Localize Files: $(ls ~/.claude/localize/ 2>/dev/null | wc -l) files" >> $GITHUB_STEP_SUMMARY
