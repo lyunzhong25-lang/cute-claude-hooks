@@ -2,8 +2,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Compatible-orange.svg)](https://claude.ai/code)
+[![npm version](https://img.shields.io/npm/v/cute-claude-hooks.svg)](https://www.npmjs.com/package/cute-claude-hooks)
 [![Cross Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](https://github.com/gugug168/cute-claude-hooks)
-[![GitHub Actions](https://github.com/gugug168/cute-claude-hooks/workflows/%F0%9F%A7%AA%20%E8%B7%A8%E5%B9%B3%E5%8F%B0%E6%B2%99%E7%9B%92%E6%B5%8B%E8%AF%95/badge.svg)](https://github.com/gugug168/cute-claude-hooks/actions)
+[![GitHub Actions](https://github.com/gugug168/cute-claude-hooks/actions/workflows/test-localization.yml/badge.svg)](https://github.com/gugug168/cute-claude-hooks/actions/workflows/test-localization.yml)
 
 > 🌸 让 Claude Code 拥有完整的中文体验！专为编程小白设计
 
@@ -72,7 +73,25 @@
 
 ## 📦 安装
 
-### 方式一：一键安装（推荐）
+### 方式一：NPM 安装（推荐）
+
+```bash
+# 全局安装
+npm install -g cute-claude-hooks
+
+# 运行安装脚本
+cute-claude-hooks-install
+
+# 恢复英文界面
+cute-claude-hooks-restore
+```
+
+**或者使用 npx（无需全局安装）：**
+```bash
+npx cute-claude-hooks-install
+```
+
+### 方式二：一键脚本安装
 
 **Windows (PowerShell):**
 ```powershell
@@ -84,7 +103,7 @@ irm https://raw.githubusercontent.com/gugug168/cute-claude-hooks/main/install.ps
 curl -fsSL https://raw.githubusercontent.com/gugug168/cute-claude-hooks/main/install.sh | bash
 ```
 
-### 方式二：Gitee 镜像（国内用户推荐）
+### 方式三：Gitee 镜像（国内用户推荐）
 
 **Windows (PowerShell):**
 ```powershell
