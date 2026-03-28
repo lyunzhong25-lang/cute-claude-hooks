@@ -103,6 +103,7 @@ jobs:
           echo "✅ Hook 中文提示测试完成!"
 
       - name: 📋 Generate Test Report
+        shell: bash
         run: |
           echo "## 🌸 Localization Test Report (${{ matrix.os }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -110,6 +111,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- OS: ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
           echo "- Claude Code: Installed" >> $GITHUB_STEP_SUMMARY
-          echo "- Hook Files: $(ls ~/.claude/hooks/ 2>/dev/null | wc -l) files" >> $GITHUB_STEP_SUMMARY
-          echo "- Localize Files: $(ls ~/.claude/localize/ 2>/dev/null | wc -l) files" >> $GITHUB_STEP_SUMMARY
+          HOOK_COUNT=$(ls ~/.claude/hooks/ 2>/dev/null | wc -l || echo "0")
+          LOCALIZE_COUNT=$(ls ~/.claude/localize/ 2>/dev/null | wc -l || echo "0")
+          echo "- Hook Files: $HOOK_COUNT files" >> $GITHUB_STEP_SUMMARY
+          echo "- Localize Files: $LOCALIZE_COUNT files" >> $GITHUB_STEP_SUMMARY
           echo "- Status: Ready for use 🎉" >> $GITHUB_STEP_SUMMARY
