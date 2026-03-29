@@ -158,6 +158,13 @@ module.exports = {
   'Duration to sleep (seconds or with suffix like 5s, 2m, 1h)': '休眠持续时间（秒或带后缀如 5s、2m、1h）',
   'Provide an explanation of a shell command': '解释 Shell 命令',
 
+  // ========== v1.1.0 新增 ==========
+  "Copy Claude's last response or a code block to clipboard": "复制 Claude 的最后一条回复或代码块到剪贴板",
+  'Create a fork of the current conversation at this point': '在此处创建当前对话的分支副本',
+  'Manage hook configurations for tool events': '管理工具事件的钩子配置',
+  'Set the AI model for Claude Code': '设置 Claude Code 使用的 AI 模型',
+  'Set the output style directly or from a selection menu': '直接设置或从菜单中选择输出风格',
+
   // ========== 快捷键与过滤提示 ==========
   'Type to filter': '输入以过滤',
   'Type to filter · Enter/↓ select · ↑ tabs · Esc clear': '输入以过滤 · Enter/↓ 选项 · ↑ 切换选项卡 · Esc 清除',
