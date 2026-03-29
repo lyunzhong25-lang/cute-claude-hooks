@@ -1,142 +1,138 @@
 #!/usr/bin/env node
-// localize.js - Claude Code safe localization script
-// Only replaces strings in description:"..." fields to avoid breaking code logic
+// localize.js - Claude Code 汉化脚本
+// 采用 mine-auto-cli 的全局替换策略：匹配所有引号包裹的字符串
 // License: MIT
 
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
-// ========== Get Claude Code CLI path ==========
+const MAGENTA = '\x1b[38;5;206m';
+const GREEN = '\x1b[0;32m';
+const YELLOW = '\x1b[0;33m';
+const RED = '\x1b[0;31m';
+const NC = '\x1b[0m';
+
+// ========== 获取 Claude Code CLI 路径 ==========
 function getCliPath() {
-    const { execSync } = require('child_process');
-    let npmRoot;
-    try {
-        npmRoot = execSync('npm root -g', { encoding: 'utf8' }).trim();
-    } catch (e) {
-        console.log('\x1b[31mError: Cannot find npm. Please install Node.js first.\x1b[0m');
-        process.exit(1);
+  const pkgName = '@anthropic-ai/claude-code';
+  let npmRoot;
+
+  try {
+    const log = execSync(`npm list -g ${pkgName} --depth=0`, { encoding: 'utf8' });
+    if (!log.trim().includes(pkgName)) {
+      console.log(`${RED}请先安装 Claude Code: npm install -g ${pkgName}${NC}`);
+      process.exit(1);
     }
+    npmRoot = execSync('npm root -g', { encoding: 'utf8' }).trim();
+  } catch (e) {
+    console.log(`${RED}请先安装 Claude Code: npm install -g ${pkgName}${NC}`);
+    process.exit(1);
+  }
 
-    const cliPath = path.join(npmRoot, '@anthropic-ai', 'claude-code', 'cli.js');
-    const cliBak = path.join(npmRoot, '@anthropic-ai', 'claude-code', 'cli.bak.js');
+  const cliPath = path.join(npmRoot, pkgName, 'cli.js');
+  const cliBak = path.join(npmRoot, pkgName, 'cli.bak.js');
 
-    if (!fs.existsSync(cliPath)) {
-        console.log('\x1b[31mError: Claude Code CLI not found. Install with: npm install -g @anthropic-ai/claude-code\x1b[0m');
-        process.exit(1);
-    }
+  if (!fs.existsSync(cliPath)) {
+    console.log(`${RED}找不到 Claude Code CLI 文件${NC}`);
+    process.exit(1);
+  }
 
-    return { cliPath, cliBak };
+  // 备份原始文件（仅首次）
+  if (!fs.existsSync(cliBak)) {
+    fs.copyFileSync(cliPath, cliBak);
+    console.log(`${GREEN}已创建备份: cli.bak.js${NC}`);
+  }
+
+  return { cliPath, cliBak };
 }
 
-// ========== Parse keyword.conf ==========
-function parseKeywords(keywordFile) {
-    const content = fs.readFileSync(keywordFile, 'utf8');
-    const pairs = [];
-
-    for (const line of content.split('\n')) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('#')) continue;
-
-        const pipeIdx = trimmed.indexOf('|');
-        if (pipeIdx === -1) continue;
-
-        const keyword = trimmed.substring(0, pipeIdx).trim();
-        const translation = trimmed.substring(pipeIdx + 1).trim();
-
-        if (keyword && translation) {
-            pairs.push({ keyword, translation });
-        }
-    }
-
-    return pairs;
+// ========== 转义正则特殊字符 ==========
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// ========== Safe replacement ==========
-// ONLY replace description:"keyword" patterns
-// This is the ONLY safe way to localize - description fields are display-only text
-function safeReplace(src, keyword, translation) {
+// ========== 执行汉化（全局替换策略） ==========
+function localize(cliPath) {
+  // 加载关键词字典
+  const keywordFile = path.join(__dirname, 'keyword.js');
+  const keyword = require(keywordFile);
+
+  // 先从备份恢复，确保每次基于原始英文替换
+  const { cliBak } = getCliPath();
+  fs.copyFileSync(cliBak, cliPath);
+
+  let content = fs.readFileSync(cliPath, 'utf8');
+  const entries = Object.entries(keyword);
+  let totalReplacements = 0;
+  let processedCount = 0;
+
+  for (const [key, value] of entries) {
+    const escapedKey = escapeRegex(key).replace(/\\n/g, '\\\\n');
+    const newValue = value.replace(/\n/g, '\\n');
+
+    let replaced = false;
     let count = 0;
 
-    // Replace description:"keyword" (double-quoted description values)
-    const escaped = escapeRegex(keyword);
-    const descDoubleRegex = new RegExp(`(description:")(${escaped})(")`, 'g');
-    src = src.replace(descDoubleRegex, (match, prefix, content, suffix) => {
-        count++;
-        return `${prefix}${translation}${suffix}`;
-    });
-
-    // Replace description:`keyword` (template literal description values)
-    const descTmplRegex = new RegExp(`(description:\`)(${escaped})(\`)`, 'g');
-    src = src.replace(descTmplRegex, (match, prefix, content, suffix) => {
-        count++;
-        return `${prefix}${translation}${suffix}`;
-    });
-
-    return { src, count };
-}
-
-function escapeRegex(str) {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-// ========== Main ==========
-function main() {
-    console.log('\x1b[38;5;206m==============================================\x1b[0m');
-    console.log('\x1b[38;5;206m     Claude Code Localization Tool\x1b[0m');
-    console.log('\x1b[38;5;206m==============================================\x1b[0m');
-    console.log('');
-
-    // Find keyword file
-    const scriptDir = path.dirname(process.argv[1] || __filename);
-    const keywordFile = path.join(scriptDir, 'keyword.conf');
-
-    if (!fs.existsSync(keywordFile)) {
-        console.log('\x1b[31mError: Keyword config not found: ' + keywordFile + '\x1b[0m');
-        process.exit(1);
-    }
-
-    // Get CLI path
-    const { cliPath, cliBak } = getCliPath();
-    console.log('\x1b[32mPath: ' + cliPath + '\x1b[0m');
-    console.log('');
-
-    // Create backup
-    if (!fs.existsSync(cliBak)) {
-        fs.copyFileSync(cliPath, cliBak);
-        console.log('\x1b[32mOK: Backup created\x1b[0m');
+    if (escapedKey.startsWith('`') || escapedKey.startsWith('\\')) {
+      // 模板字符串或特殊字符开头 — 直接全文替换
+      const regex = new RegExp(escapedKey, 'g');
+      const m = content.match(regex);
+      if (m) {
+        content = content.replace(regex, value);
+        replaced = true;
+        count = m.length;
+      }
     } else {
-        console.log('\x1b[33mInfo: Backup exists, skipping\x1b[0m');
+      // 双引号包裹的字符串
+      const doubleRegex = new RegExp(`"${escapedKey}"`, 'g');
+      const dm = content.match(doubleRegex);
+      if (dm) {
+        content = content.replace(doubleRegex, `"${newValue}"`);
+        replaced = true;
+        count += dm.length;
+      }
+
+      // 单引号包裹的字符串
+      const singleRegex = new RegExp(`'${escapedKey}'`, 'g');
+      const sm = content.match(singleRegex);
+      if (sm) {
+        content = content.replace(singleRegex, `'${newValue}'`);
+        replaced = true;
+        count += sm.length;
+      }
     }
 
-    // Restore from backup first
-    fs.copyFileSync(cliBak, cliPath);
-
-    // Parse keywords
-    const pairs = parseKeywords(keywordFile);
-    console.log('\x1b[38;5;206mStarting localization... (' + pairs.length + ' entries)\x1b[0m');
-    console.log('');
-
-    // Read source
-    let src = fs.readFileSync(cliPath, 'utf8');
-    let totalReplacements = 0;
-    let processedCount = 0;
-
-    for (const { keyword, translation } of pairs) {
-        const result = safeReplace(src, keyword, translation);
-        if (result.count > 0) {
-            src = result.src;
-            totalReplacements += result.count;
-            processedCount++;
-            console.log(`  \x1b[32m+\x1b[0m ${keyword} \x1b[33m->\x1b[0m ${translation}`);
-        }
+    if (replaced) {
+      processedCount++;
+      totalReplacements += count;
+      console.log(`  ${GREEN}+${NC} ${key.substring(0, 50)}${key.length > 50 ? '...' : ''} ${YELLOW}->${NC} ${value.substring(0, 50)}${value.length > 50 ? '...' : ''}`);
     }
+  }
 
-    // Write result
-    fs.writeFileSync(cliPath, src, 'utf8');
+  fs.writeFileSync(cliPath, content, 'utf8');
 
-    console.log('');
-    console.log(`\x1b[38;5;206mLocalization complete! ${processedCount} entries, ${totalReplacements} replacements\x1b[0m`);
-    console.log('\x1b[33mInfo: Restart Claude Code to take effect\x1b[0m');
+  console.log('');
+  console.log(`${MAGENTA}汉化完成! ${processedCount}/${entries.length} 条匹配, ${totalReplacements} 处替换${NC}`);
+}
+
+// ========== 主流程 ==========
+function main() {
+  console.log(`${MAGENTA}==============================================${NC}`);
+  console.log(`${MAGENTA}     Claude Code 汉化工具${NC}`);
+  console.log(`${MAGENTA}==============================================${NC}`);
+  console.log('');
+
+  const { cliPath } = getCliPath();
+  console.log(`${GREEN}CLI 路径: ${cliPath}${NC}`);
+  console.log('');
+
+  console.log(`${MAGENTA}开始汉化...${NC}`);
+  console.log('');
+
+  localize(cliPath);
+
+  console.log(`${YELLOW}请重启 Claude Code 使汉化生效${NC}`);
 }
 
 main();

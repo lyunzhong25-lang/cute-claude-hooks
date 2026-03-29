@@ -6,13 +6,13 @@
 [![Cross Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](https://github.com/gugug168/cute-claude-hooks)
 [![GitHub Actions](https://github.com/gugug168/cute-claude-hooks/actions/workflows/test-localization.yml/badge.svg)](https://github.com/gugug168/cute-claude-hooks/actions/workflows/test-localization.yml)
 
-> 🌸 让 Claude Code 拥有完整的中文体验！专为编程小白设计
+> 🌸 让 Claude Code 拥有完整的中文体验！中文提示 + 界面汉化，专为编程小白设计
 
 ## 📸 效果预览
 
 ### 🎯 工具提示效果
 
-每个 Claude Code 执行的操作都会显示粉色中文提示，让你清楚知道它在做什么：
+每个 Claude Code 执行的操作都会显示中文提示，让你清楚知道它在做什么：
 
 ![工具提示详细效果](./screenshots/03-tool-tips-detailed.png)
 
@@ -61,7 +61,7 @@
 
 ## ✨ 特性
 
-- 🎨 **粉色中文提示** - 每个操作都有详细的中文解释，小白也能看懂
+- 📖 **中文操作提示** - 每个操作都有详细的中文解释，小白也能看懂
 - 🌸 **界面汉化** - 配置面板、命令说明、快捷键提示全中文
 - 🖥️ **跨平台** - Windows/macOS/Linux 通用
 - 📦 **轻量级** - 无依赖，秒级安装
@@ -134,7 +134,7 @@ curl -fsSL https://gitee.com/gugug168/cute-claude-hooks/raw/main/install-gitee.s
 
 ### 1️⃣ 工具提示 (Tool Tips)
 
-安装后，Claude Code 每次执行操作都会显示粉色中文提示：
+安装后，Claude Code 每次执行操作都会显示中文提示：
 
 ```
 ✅ 操作成功示例：
@@ -170,28 +170,116 @@ curl -fsSL https://gitee.com/gugug168/cute-claude-hooks/raw/main/install-gitee.s
 
 ---
 
+## 🪟 Windows 手动安装（自动安装失败时使用）
+
+如果 `cute-claude-hooks-install` 运行后中文提示没有出现，按以下步骤手动安装：
+
+### 前提条件
+- 已安装 [Git for Windows](https://git-scm.com/downloads/win)
+- 已安装 [Node.js](https://nodejs.org/) 14+
+
+### 步骤一：复制 hook 脚本
+
+```powershell
+# 创建 hooks 目录
+mkdir -Force "$env:USERPROFILE\.claude\hooks"
+
+# 复制脚本（替换为你的 npm 全局目录）
+$npmDir = (npm root -g).Trim()
+copy "$npmDir\cute-claude-hooks\tool-tips-post.sh" "$env:USERPROFILE\.claude\hooks\"
+```
+
+### 步骤二：确认 bash 可用
+
+```powershell
+# 检查 bash 是否在 PATH 中
+bash --version
+
+# 如果找不到，设置环境变量指向你的 Git Bash
+# 将下面的路径改为你实际的 Git Bash 安装路径
+$env:CLAUDE_CODE_GIT_BASH_PATH = "C:\Program Files\Git\bin\bash.exe"
+```
+
+### 步骤三：手动编辑 settings.json
+
+打开 `~/.claude/settings.json`，添加或修改 `hooks` 段：
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash|Read|Write|Edit|Glob|Grep|mcp__*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Users/你的用户名/.claude/hooks/tool-tips-post.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+> **注意**：路径使用正斜杠 `/`，不要用反斜杠 `\`
+
+### 步骤四：验证
+
+```powershell
+# 手动测试 hook 脚本
+echo '{"tool_name":"Read","file_path":"test.py"}' | bash "$env:USERPROFILE\.claude\hooks\tool-tips-post.sh"
+```
+
+如果看到 `{"systemMessage":"🌸 📖 读取文件: test.py — 查看这个文件里写了什么 🌸"}`，说明脚本正常工作。
+
+### 常见问题排查
+
+| 问题 | 解决方案 |
+|------|---------|
+| `bash: command not found` | 安装 [Git for Windows](https://git-scm.com/downloads/win) 并确保在 PATH 中 |
+| 脚本无输出 | 检查 .sh 文件换行符是否为 LF（非 CRLF） |
+| 中文用户名路径乱码 | 确保系统编码为 UTF-8：设置 → 时间和语言 → 语言 → 管理语言设置 → 更改系统区域设置 → 勾选 Beta: 使用 Unicode UTF-8 |
+| settings.json 格式错误 | 用 `node -e "JSON.parse(require('fs').readFileSync(require('path').join(require('os').homedir(),'.claude','settings.json'),'utf8'));console.log('OK')"` 验证 |
+
+---
+
 ## 🔧 快速自定义
 
-### 修改提示颜色
+### 修改提示文本
 
-编辑 `~/.claude/hooks/tool-tips-post.sh` 最后一行：
+编辑 `~/.claude/hooks/tool-tips-post.sh` 中的 `get_tip()` 函数：
 
 ```bash
-# 修改颜色代码
-printf '\033[38;5;206m...'  # 206=粉色
-printf '\033[38;5;196m...'  # 196=红色
-printf '\033[38;5;46m...'   # 46=绿色
-printf '\033[38;5;33m...'   # 33=蓝色
+# 修改工具提示文本
+"Read")
+    echo "📖 正在读取文件 — 看看里面写了什么"
+    ;;
+
+# 修改命令解释
+git)
+    case "$sub" in
+        status)  echo "查看仓库状态" ;;
+        log)     echo "查看提交历史" ;;
+    esac
+    ;;
 ```
+
+> **注意：** Claude Code 的 hook 输出不支持自定义颜色，提示会以默认颜色显示。
 
 ### 添加新的汉化词条
 
-编辑 `~/.claude/localize/keyword.conf`：
+编辑 `~/.claude/localize/keyword.js`：
 
-```bash
-# 格式: 原文|译文
-Your-english-text|你的中文翻译
+```javascript
+module.exports = {
+  // 添加新的翻译条目
+  'Your English text': '你的中文翻译',
+  // ...
+}
 ```
+
+然后重新执行 `node ~/.claude/localize/localize.js` 即可。
 
 ---
 
@@ -203,23 +291,16 @@ cute-claude-hooks/
 ├── 📄 SKILL.md               # 完整自定义指南
 ├── 📄 LICENSE                # MIT 许可证
 ├── 🔧 tool-tips-post.sh      # 工具提示 Hook 脚本
-├── 📦 install.ps1            # Windows 安装脚本
-├── 📦 install.sh             # Linux/macOS 安装脚本
-├── 📦 install-gitee.ps1      # Windows 安装脚本 (Gitee)
-├── 📦 install-gitee.sh       # Linux/macOS 安装脚本 (Gitee)
+├── 📁 bin/                   # 安装脚本
+│   ├── 📦 install.js         # 统一安装器（hooks + 汉化）
+│   └── 📦 restore.js         # 恢复英文界面
 ├── 📁 localize/              # 界面汉化模块
-│   ├── 📝 keyword.conf       # 关键词翻译配置 (135词条)
-│   ├── 🔧 localize.js        # Node.js 安全汉化引擎 (首选)
-│   ├── 🔧 localize.sh        # Linux/macOS 汉化脚本 (备选)
-│   ├── 🔧 localize.ps1       # Windows PowerShell 汉化脚本 (备选)
-│   ├── 🔧 localize.py        # Python 汉化脚本 (备选)
-│   ├── 🔄 restore.sh         # Linux/macOS 恢复脚本
-│   └── 🔄 restore.ps1        # Windows 恢复脚本
+│   ├── 📝 keyword.js         # 关键词翻译字典 (151词条)
+│   └── 🔧 localize.js        # Node.js 全局替换汉化引擎
 ├── 📁 .github/
 │   └── 📁 workflows/
 │       └── 🧪 test-localize.yml  # 跨平台自动测试
 └── 📁 screenshots/           # 截图目录
-    └── 📸 (待添加截图)
 ```
 
 ---
@@ -238,9 +319,9 @@ cute-claude-hooks/
 
 ### 测试覆盖
 
-- ✅ **工具提示测试** - 验证 Hook 脚本输出粉色中文提示
-- ✅ **界面汉化测试** - 验证 cli.js 成功翻译 135 个词条
-- ✅ **安全替换验证** - 仅替换 description:"..." 字段，不破坏代码逻辑
+- ✅ **工具提示测试** - 验证 Hook 脚本输出中文提示
+- ✅ **界面汉化测试** - 验证 cli.js 成功翻译 151 个词条
+- ✅ **全局替换验证** - 匹配双引号/单引号/模板字符串中的所有键值
 - ✅ **备份文件检查** - 确保 cli.bak.js 备份存在
 
 ---
