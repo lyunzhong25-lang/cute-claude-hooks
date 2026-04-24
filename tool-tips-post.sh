@@ -267,11 +267,25 @@ get_tip() {
                 echo "📝 写入完成 — 刚才创建/覆盖了文件"
             fi
             ;;
-        "Edit"|"MultiEdit")
+        "Edit")
             if [ -n "$file_path" ]; then
                 echo "✏️ 编辑文件: $(short_path "$file_path") — 修改这个文件的部分内容"
             else
                 echo "✏️ 编辑完成 — 刚才修改了文件内容"
+            fi
+            ;;
+        "MultiEdit")
+            if [ -n "$file_path" ]; then
+                echo "✏️ 批量编辑: $(short_path "$file_path") — 同时修改文件中的多处内容"
+            else
+                echo "✏️ 批量编辑完成 — 刚才同时修改了多处内容"
+            fi
+            ;;
+        "NotebookEdit")
+            if [ -n "$file_path" ]; then
+                echo "📓 编辑笔记本: $(short_path "$file_path") — 修改 Jupyter 笔记本单元格"
+            else
+                echo "📓 笔记本编辑完成"
             fi
             ;;
         "Bash")
@@ -338,6 +352,36 @@ get_tip() {
         "ExitPlanMode")
             echo "✅ 规划完成 — AI想好了方案，准备开始执行"
             ;;
+        "WebFetch")
+            echo "🌐 抓取网页 — 从网上获取页面内容并分析"
+            ;;
+        "CronCreate")
+            echo "⏰ 创建定时任务 — 设置一个按时间自动执行的任务"
+            ;;
+        "CronDelete")
+            echo "⏰ 删除定时任务 — 取消一个已设置的定时任务"
+            ;;
+        "CronList")
+            echo "⏰ 查看定时任务 — 列出所有已设置的定时任务"
+            ;;
+        "ScheduleWakeup")
+            echo "⏰ 设置唤醒 — 安排稍后自动继续工作"
+            ;;
+        "EnterWorktree")
+            echo "🌿 进入工作树 — 在独立的代码副本中工作，不影响主分支"
+            ;;
+        "ExitWorktree")
+            echo "🌿 退出工作树 — 离开独立代码副本，回到主目录"
+            ;;
+        "AskUserQuestion")
+            echo "❓ 向你提问 — AI需要你做一个选择或确认"
+            ;;
+        "TaskOutput")
+            echo "📋 查看任务输出 — 获取后台任务的运行结果"
+            ;;
+        "TaskStop")
+            echo "🛑 停止任务 — 终止一个正在运行的后台任务"
+            ;;
         *)
             if [[ "$1" == mcp__* ]]; then
                 srv=$(echo "$1" | sed -n 's/mcp__\([^_]*\)__.*/\1/p')
@@ -354,6 +398,13 @@ get_tip() {
                         "web_reader")     echo "📖 网页阅读: $tool — 读取网页内容" ;;
                         "4_5v-mcp")       echo "🖼️ 图像处理: $tool — 分析或生成图片" ;;
                         "zai-mcp-server") echo "🤖 AI视觉: $tool — AI图像分析能力" ;;
+                        "figma")          echo "🎨 Figma 设计: $tool — 操作 Figma 设计文件" ;;
+                        "pencil")         echo "✏️ Pencil 设计: $tool — 操作 .pen 设计文件" ;;
+                        "magic")          echo "✨ 21st Magic: $tool — 搜索或生成 UI 组件" ;;
+                        "chrome-devtools") echo "🔧 Chrome 调试: $tool — 操控 Chrome 浏览器开发者工具" ;;
+                        "github")         echo "🐙 GitHub: $tool — 操作 GitHub 仓库" ;;
+                        "postgres"|"mysql"|"sqlite") echo "🗄️ 数据库: $tool — 执行数据库操作" ;;
+                        "filesystem")     echo "📁 文件系统: $tool — 操作文件和目录" ;;
                         *)                echo "🔌 $srv: $tool — 调用了第三方工具服务" ;;
                     esac
                 fi

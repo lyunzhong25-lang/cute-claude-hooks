@@ -381,17 +381,40 @@ function installLocalize() {
     }
   });
 
-  // 执行汉化
-  console.log(`\n${MAGENTA}执行汉化...${NC}`);
-
+  // 检测 Claude Code 架构
+  const pkgName = '@anthropic-ai/claude-code';
+  let npmRoot;
   try {
-    const jsScript = path.join(localizeDir, 'localize.js');
-    if (fs.existsSync(jsScript)) {
-      execSync(`node "${jsScript}"`, { stdio: 'inherit' });
+    npmRoot = execSync('npm root -g', { encoding: 'utf8' }).trim();
+  } catch (e) {
+    console.log(`${YELLOW}警告: 无法获取 npm 全局路径${NC}`);
+    return;
+  }
+
+  const claudeDir = path.join(npmRoot, pkgName);
+  const cliJs = path.join(claudeDir, 'cli.js');
+  const hasNativeBinary = fs.existsSync(path.join(claudeDir, 'bin', 'claude.exe'))
+    || fs.existsSync(path.join(claudeDir, 'bin', 'claude'));
+
+  if (fs.existsSync(cliJs)) {
+    // 旧版 JS 架构：执行字符串替换汉化
+    console.log(`\n${MAGENTA}检测到旧版 JS 架构，执行汉化...${NC}`);
+    try {
+      const jsScript = path.join(localizeDir, 'localize.js');
+      if (fs.existsSync(jsScript)) {
+        execSync(`node "${jsScript}"`, { stdio: 'inherit' });
+      }
+    } catch (err) {
+      console.log(`${YELLOW}警告: 汉化过程中遇到问题${NC}`);
+      console.log(`${YELLOW}可手动执行: node ~/.claude/localize/localize.js${NC}`);
     }
-  } catch (err) {
-    console.log(`${YELLOW}警告: 汉化过程中遇到问题${NC}`);
-    console.log(`${YELLOW}可手动执行: node ~/.claude/localize/localize.js${NC}`);
+  } else if (hasNativeBinary) {
+    // 新版原生二进制架构：跳过字符串替换
+    console.log(`${YELLOW}检测到新版原生二进制架构 (v2.x+)${NC}`);
+    console.log(`${YELLOW}界面文字汉化（字符串替换）不适用于新版，已跳过${NC}`);
+    console.log(`${GREEN}中文提示钩子（步骤 1）仍然正常工作!${NC}`);
+  } else {
+    console.log(`${YELLOW}警告: 无法识别 Claude Code 架构，跳过汉化${NC}`);
   }
 }
 
