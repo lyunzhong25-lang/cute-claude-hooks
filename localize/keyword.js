@@ -165,6 +165,23 @@ module.exports = {
   'Set the AI model for Claude Code': '设置 Claude Code 使用的 AI 模型',
   'Set the output style directly or from a selection menu': '直接设置或从菜单中选择输出风格',
 
+  // ========== v2.x 新增 ==========
+  'Scan your transcripts for common read-only Bash and MCP tool calls, then add a prioritized allowlist to project .claude/settings.json to reduce permission prompts.':
+    '扫描你的对话记录，找出常用的只读 Bash 和 MCP 工具调用，然后在项目 .claude/settings.json 中添加优先允许列表以减少权限提示。',
+  'Create a git commit': '创建一个 Git 提交',
+  'Show current context usage': '显示当前上下文用量',
+  'Configure extra usage to keep working when limits are hit': '配置额外用量，在达到限制后继续工作',
+  'Toggle a searchable tag on the current session': '切换当前会话的可搜索标签',
+  'Create, update, list, or run scheduled remote agents (triggers) that execute on a cron schedule.':
+    '创建、更新、列出或运行按 cron 计划执行的定时远程代理（触发器）',
+  'Run a prompt or slash command on a recurring interval (e.g. /loop 5m /foo, defaults to 10m) - When the user wants to set up a recurring task, poll for status, or run something repeatedly on an interval (e.g. "check the deploy every 5 minutes", "keep running /babysit-prs"). Do NOT invoke for one-off tasks.':
+    '按固定间隔重复执行提示词或斜杠命令（例如 /loop 5m /foo，默认 10 分钟）— 当用户想设置定期任务、轮询状态或重复执行某操作时使用。不用于一次性任务。',
+  'Build, debug, and optimize Claude API / Anthropic SDK apps. Apps built with this skill should include prompt caching. Also handles migrating existing Claude API code between Claude model versions (4.5 → 4.6, 4.6 → 4.7, retired-model replacements).':
+    '构建、调试和优化 Claude API / Anthropic SDK 应用。使用此技能构建的应用应包含提示缓存。也可处理不同 Claude 模型版本之间的代码迁移（4.5 → 4.6、4.6 → 4.7、已退役模型替换）。',
+  'Use this skill to configure the Claude Code harness via settings.json. Automated behaviors ("from now on when X", "each time X", "whenever X", "before/after X") require hooks configured in settings.json - the harness executes these, not Claude, so memory/preferences cannot fulfill them. Also use for: permissions ("allow X", "add permission", "move permission to"), env vars ("set X=Y"), hook troubleshooting, or any changes to settings.json/settings.local.json files. Examples: "allow npm commands", "add bq permission to global settings", "move permission to user settings", "set DEBUG=true", "when claude stops show X". For simple settings like theme/model, suggest the /config command.':
+    '使用此技能通过 settings.json 配置 Claude Code 运行环境。自动化行为（"从现在起每当 X"、"每次 X"、"每当 X"、"在 X 之前/之后"）需要在 settings.json 中配置钩子——由运行环境执行，而非 Claude。也适用于：权限管理（"允许 X"、"添加权限"）、环境变量（"设置 X=Y"）、钩子排查，或对 settings.json 的修改。如需修改主题/模型等简单设置，建议使用 /config 命令。',
+  'Initialize a new CLAUDE.md file with codebase documentation': '初始化一个新的 CLAUDE.md 文件，并写入代码库的相关文档说明',
+
   // ========== 快捷键与过滤提示 ==========
   'Type to filter': '输入以过滤',
   'Type to filter · Enter/↓ select · ↑ tabs · Esc clear': '输入以过滤 · Enter/↓ 选项 · ↑ 切换选项卡 · Esc 清除',
