@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // localize.js - Claude Code 汉化脚本
-// 支持旧版 JS 架构（字符串替换）和新版原生二进制架构（二进制替换）
+// 支持旧版 JS 架构 + 新版原生二进制架构（安全模式）
 // License: MIT
 
 const fs = require('fs');
@@ -13,6 +13,19 @@ const YELLOW = '\x1b[0;33m';
 const RED = '\x1b[0;31m';
 const CYAN = '\x1b[0;36m';
 const NC = '\x1b[0m';
+
+// 二进制模式下必须跳过的危险词（太短或太通用，会破坏代码逻辑）
+const BINARY_BLOCKLIST = new Set([
+  'Usage', 'Status', 'Config', 'Theme', 'Notifications', 'Language',
+  'Model', 'Custom model',
+  'Search settings...', 'Type to filter', '(↓ to select)',
+  ' more above', ' more below', 'more below',
+  'Esc to cancel', '· Esc to cancel',
+  'Config dialog dismissed', 'shift+tab to cycle',
+]);
+
+// 二进制模式下的最小英文字节长度（低于此值跳过，避免误伤代码）
+const BINARY_MIN_LENGTH = 15;
 
 // ========== 获取 Claude Code 安装路径 ==========
 function getClaudeCodeDir() {
@@ -48,7 +61,7 @@ function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// ========== 旧版 JS 架构汉化 ==========
+// ========== 旧版 JS 架构汉化（全量替换，无限制） ==========
 function localizeJs(cliPath) {
   const keywordFile = path.join(__dirname, 'keyword.js');
   const keyword = require(keywordFile);
@@ -96,31 +109,7 @@ function localizeJs(cliPath) {
   console.log(`${MAGENTA}汉化完成! ${processedCount}/${entries.length} 条匹配, ${totalReplacements} 处替换${NC}`);
 }
 
-// ========== 移除 PE 数字签名 ==========
-function stripPESignature(buffer) {
-  if (buffer[0] !== 0x4D || buffer[1] !== 0x5A) throw new Error('不是有效的 PE 文件');
-  const peOffset = buffer.readUInt32LE(0x3C);
-  if (buffer.readUInt32LE(peOffset) !== 0x00004550) throw new Error('PE 签名无效');
-
-  const optHeaderOffset = peOffset + 24;
-  const magic = buffer.readUInt16LE(optHeaderOffset);
-
-  let secDirOffset;
-  if (magic === 0x20B) {        // PE32+ 64位
-    secDirOffset = optHeaderOffset + 112 + 4 * 8;
-  } else if (magic === 0x10B) { // PE32 32位
-    secDirOffset = optHeaderOffset + 96 + 4 * 8;
-  } else {
-    throw new Error(`未知 PE magic: 0x${magic.toString(16)}`);
-  }
-
-  // 将安全目录条目清零（VirtualAddress + Size 各 4 字节）
-  buffer.writeUInt32LE(0, secDirOffset);
-  buffer.writeUInt32LE(0, secDirOffset + 4);
-  return buffer;
-}
-
-// ========== 新版二进制架构汉化 ==========
+// ========== 新版二进制架构汉化（安全模式） ==========
 function localizeBinary(binaryPath) {
   const keywordFile = path.join(__dirname, 'keyword.js');
   const keyword = require(keywordFile);
@@ -130,36 +119,44 @@ function localizeBinary(binaryPath) {
     const sizeMB = Math.round(fs.statSync(binaryPath).size / 1024 / 1024);
     console.log(`${CYAN}正在备份原始文件（约 ${sizeMB}MB），请稍候...${NC}`);
     fs.copyFileSync(binaryPath, bakPath);
-    console.log(`${GREEN}已创建备份: claude.exe.bak${NC}`);
+    console.log(`${GREEN}已创建备份${NC}`);
   }
 
-  // 每次从备份恢复，确保基于原始文件替换
+  // 从备份恢复，确保基于原始文件替换
   console.log(`${CYAN}从备份恢复原始文件...${NC}`);
   fs.copyFileSync(bakPath, binaryPath);
 
   let buffer = fs.readFileSync(binaryPath);
 
-  // 移除数字签名
-  try {
-    buffer = stripPESignature(buffer);
-    console.log(`${GREEN}已移除数字签名${NC}`);
-  } catch (e) {
-    console.log(`${YELLOW}警告: 无法移除签名 (${e.message})，继续尝试替换...${NC}`);
-  }
-
   const entries = Object.entries(keyword);
   let replacedCount = 0;
-  let skippedCount = 0;
+  let skippedShort = 0;
+  let skippedBlock = 0;
+  let skippedSize = 0;
+  let skippedTemplate = 0;
+  let skippedNotFound = 0;
   let totalOccurrences = 0;
 
   console.log('');
-  console.log(`${MAGENTA}开始二进制字符串替换...${NC}`);
+  console.log(`${MAGENTA}开始安全二进制替换（跳过短词和通用词）...${NC}`);
   console.log('');
 
   for (const [english, chinese] of entries) {
-    // 跳过模板语法条目（二进制里不会有这种格式）
+    // 跳过模板语法
     if (english.includes('${') || english.startsWith('`')) {
-      skippedCount++;
+      skippedTemplate++;
+      continue;
+    }
+
+    // 跳过黑名单词
+    if (BINARY_BLOCKLIST.has(english)) {
+      skippedBlock++;
+      continue;
+    }
+
+    // 跳过太短的词（容易误伤代码）
+    if (Buffer.from(english, 'utf8').length < BINARY_MIN_LENGTH) {
+      skippedShort++;
       continue;
     }
 
@@ -168,7 +165,7 @@ function localizeBinary(binaryPath) {
 
     // 中文字节数超过英文字节数则跳过
     if (cnBuf.length > engBuf.length) {
-      skippedCount++;
+      skippedSize++;
       continue;
     }
 
@@ -191,7 +188,7 @@ function localizeBinary(binaryPath) {
       const cnDisplay = chinese.substring(0, 25);
       console.log(`  ${GREEN}+${NC} ${engDisplay} → ${cnDisplay} ${YELLOW}(${count}处)${NC}`);
     } else {
-      skippedCount++;
+      skippedNotFound++;
     }
   }
 
@@ -201,9 +198,9 @@ function localizeBinary(binaryPath) {
 
   console.log('');
   console.log(`${MAGENTA}${'='.repeat(50)}${NC}`);
-  console.log(`${MAGENTA}二进制汉化完成!${NC}`);
-  console.log(`${GREEN}  成功替换: ${replacedCount} 条字符串, 共 ${totalOccurrences} 处${NC}`);
-  console.log(`${YELLOW}  跳过: ${skippedCount} 条 (中文字节数超出或含模板语法)${NC}`);
+  console.log(`${MAGENTA}二进制汉化完成（安全模式）!${NC}`);
+  console.log(`${GREEN}  成功替换: ${replacedCount} 条, 共 ${totalOccurrences} 处${NC}`);
+  console.log(`${YELLOW}  跳过: 短词 ${skippedShort} | 黑名单 ${skippedBlock} | 字节超出 ${skippedSize} | 模板 ${skippedTemplate} | 未找到 ${skippedNotFound}${NC}`);
   console.log(`${MAGENTA}${'='.repeat(50)}${NC}`);
 }
 
@@ -222,24 +219,22 @@ function main() {
   console.log('');
 
   if (arch.type === 'js') {
-    console.log(`${GREEN}检测到旧版 JS 架构，执行字符串替换汉化...${NC}\n`);
+    console.log(`${GREEN}检测到旧版 JS 架构，执行全量汉化...${NC}\n`);
     localizeJs(arch.cliPath);
-    console.log(`${YELLOW}请重启 Claude Code 使汉化生效${NC}`);
-
   } else if (arch.type === 'native') {
     console.log(`${YELLOW}检测到新版原生二进制架构 (v2.x+)${NC}`);
-    console.log(`${CYAN}将对二进制文件进行字符串替换（仅替换字节数匹配的条目）${NC}\n`);
+    console.log(`${CYAN}使用安全模式：只替换长且唯一的 UI 字符串，跳过通用短词${NC}\n`);
     localizeBinary(arch.binaryPath);
-    console.log(`${YELLOW}请重启 Claude Code 使汉化生效${NC}`);
-    console.log(`${CYAN}注: 部分字符串因中文字节数超出英文而无法替换，属正常现象${NC}`);
-
   } else {
     console.log(`${RED}无法识别 Claude Code 的安装结构${NC}`);
-    try {
-      fs.readdirSync(claudeDir).forEach(f => console.log(`  ${f}`));
-    } catch (e) {}
+    try { fs.readdirSync(claudeDir).forEach(f => console.log(`  ${f}`)); } catch (e) {}
     console.log(`${YELLOW}请确认 Claude Code 已正确安装${NC}`);
+    return;
   }
+
+  console.log('');
+  console.log(`${YELLOW}请重启 Claude Code 使汉化生效${NC}`);
+  console.log(`${CYAN}如需恢复原版，删除 .bak 文件后重新安装 Claude Code${NC}`);
 }
 
 main();
