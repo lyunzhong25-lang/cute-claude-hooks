@@ -6,6 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const { arch } = require('os');
 
 const MAGENTA = '\x1b[38;5;206m';
 const GREEN = '\x1b[0;32m';
@@ -45,14 +46,41 @@ function getClaudeCodeDir() {
   return path.join(npmRoot, pkgName);
 }
 
+function getPlatformKey() {
+  let cpu = arch();
+  if (process.platform === 'linux') {
+    const report = typeof process.report?.getReport === 'function' ? process.report.getReport() : null;
+    const musl = report != null && report.header?.glibcVersionRuntime === undefined;
+    return `linux-${cpu}${musl ? '-musl' : ''}`;
+  }
+  return `${process.platform}-${cpu}`;
+}
+
+function getNativePackageBinary() {
+  const platformKey = getPlatformKey();
+  const suffix = platformKey === 'win32-x64' || platformKey === 'win32-arm64' ? 'claude.exe' : 'claude';
+  const packageName = `@anthropic-ai/claude-code-${platformKey}`;
+
+  try {
+    const pkgJson = require.resolve(`${packageName}/package.json`);
+    const binaryPath = path.join(path.dirname(pkgJson), suffix);
+    if (fs.existsSync(binaryPath)) return binaryPath;
+  } catch (e) {}
+
+  return null;
+}
+
 // ========== 检测架构 ==========
 function detectArchitecture(claudeDir) {
   const cliJs = path.join(claudeDir, 'cli.js');
   const cliExe = path.join(claudeDir, 'bin', 'claude.exe');
   const cliBin = path.join(claudeDir, 'bin', 'claude');
+  const nativePackageBinary = getNativePackageBinary();
+
   if (fs.existsSync(cliJs)) return { type: 'js', cliPath: cliJs };
   if (fs.existsSync(cliExe)) return { type: 'native', binaryPath: cliExe };
   if (fs.existsSync(cliBin)) return { type: 'native', binaryPath: cliBin };
+  if (nativePackageBinary) return { type: 'native', binaryPath: nativePackageBinary };
   return { type: 'unknown' };
 }
 

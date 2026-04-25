@@ -87,39 +87,38 @@
 
 > 界面汉化需要修改 Claude Code 内部文件，目前仅通过 NPM 安装脚本自动完成，暂不提供手动安装方式。
 
-### 方式一：NPM 安装（推荐）
+### 方式一：GitHub 最新版安装（推荐）
 
 ```bash
-# 全局安装
-npm install -g cute-claude-hooks
+npm install -g github:lyunzhong25-lang/cute-claude-hooks --install-links=false --force
+```
 
-# 运行安装脚本
+安装完成后会自动执行安装脚本。若需要重新修复配置，可再运行：
+
+```bash
 cute-claude-hooks-install
+```
 
-# 恢复英文界面
+恢复英文界面：
+
+```bash
 cute-claude-hooks-restore
 ```
 
-**或者使用 npx（无需全局安装）：**
-```bash
-npx cute-claude-hooks-install
-```
+> Windows 上使用 GitHub 安装时建议保留 `--install-links=false`，避免 npm 把全局命令链接到临时缓存目录。
 
-### 方式二：国内加速安装（推荐国内用户）
-
-如果 npm 官方源速度慢，可以使用国内镜像：
+### 方式二：NPM 正式版安装
 
 ```bash
-# 使用 npmmirror 镜像安装
-npm install -g cute-claude-hooks --registry=https://registry.npmmirror.com
-
-# 运行安装脚本
+npm install -g cute-claude-hooks
 cute-claude-hooks-install
 ```
 
-**或者使用 npx：**
+### 方式三：国内加速安装
+
 ```bash
-npx cute-claude-hooks-install
+npm install -g cute-claude-hooks --registry=https://registry.npmmirror.com
+cute-claude-hooks-install
 ```
 
 ### 安装选项

@@ -322,16 +322,23 @@ function updateSettings(hookPath) {
   const normalizedPath = hookPath.replace(/\\/g, '/');
 
   // matcher 匹配所有常用工具 + MCP 工具
-  const matcher = 'Bash|Read|Write|Edit|Glob|Grep|mcp__*';
+  const matcher = 'Bash|Read|Write|Edit|MultiEdit|Glob|Grep|Agent|Skill|TaskCreate|TaskUpdate|TaskGet|TaskList|TaskOutput|TaskStop|EnterPlanMode|ExitPlanMode|AskUserQuestion|NotebookEdit|WebFetch|CronCreate|CronDelete|CronList|ScheduleWakeup|EnterWorktree|ExitWorktree|mcp__*';
 
   // 检查是否已存在同 matcher 的配置
   const existingIdx = settings.hooks.PostToolUse.findIndex(h => h.matcher === matcher);
 
-  // hook command：直接用路径，不加 bash 前缀
-  // Claude Code 的 hook 执行器会自动通过 cr8() 找到 bash 并包装执行
+  // Windows 显式使用 Git Bash，避免不同 Claude Code 版本对 .sh 的包装行为不同
+  let command = normalizedPath;
+  if (IS_WIN) {
+    const bashPath = findGitBash();
+    if (bashPath) {
+      command = `${bashPath.replace(/\\/g, '/')} ${normalizedPath}`;
+    }
+  }
+
   const hookEntry = {
     type: 'command',
-    command: normalizedPath,
+    command,
   };
 
   const hookConfig = {
@@ -347,7 +354,7 @@ function updateSettings(hookPath) {
     console.log(`${GREEN}已添加: PostToolUse 钩子配置${NC}`);
   }
 
-  console.log(`${CYAN}钩子命令: ${normalizedPath}${NC}`);
+  console.log(`${CYAN}钩子命令: ${command}${NC}`);
   console.log(`${CYAN}匹配模式: ${matcher}${NC}`);
 
   try {
@@ -396,9 +403,8 @@ function installLocalize() {
   const hasNativeBinary = fs.existsSync(path.join(claudeDir, 'bin', 'claude.exe'))
     || fs.existsSync(path.join(claudeDir, 'bin', 'claude'));
 
-  if (fs.existsSync(cliJs)) {
-    // 旧版 JS 架构：执行字符串替换汉化
-    console.log(`\n${MAGENTA}检测到旧版 JS 架构，执行汉化...${NC}`);
+  if (fs.existsSync(cliJs) || hasNativeBinary) {
+    console.log(`\n${MAGENTA}检测到 Claude Code，执行安全汉化...${NC}`);
     try {
       const jsScript = path.join(localizeDir, 'localize.js');
       if (fs.existsSync(jsScript)) {
@@ -406,15 +412,11 @@ function installLocalize() {
       }
     } catch (err) {
       console.log(`${YELLOW}警告: 汉化过程中遇到问题${NC}`);
-      console.log(`${YELLOW}可手动执行: node ~/.claude/localize/localize.js${NC}`);
+      console.log(`${YELLOW}如果 Claude Code 正在运行，请完全退出后手动执行: node "${path.join(localizeDir, 'localize.js')}"${NC}`);
     }
-  } else if (hasNativeBinary) {
-    // 新版原生二进制架构：跳过字符串替换
-    console.log(`${YELLOW}检测到新版原生二进制架构 (v2.x+)${NC}`);
-    console.log(`${YELLOW}界面文字汉化（字符串替换）不适用于新版，已跳过${NC}`);
-    console.log(`${GREEN}中文提示钩子（步骤 1）仍然正常工作!${NC}`);
   } else {
-    console.log(`${YELLOW}警告: 无法识别 Claude Code 架构，跳过汉化${NC}`);
+    console.log(`${YELLOW}警告: 无法识别 Claude Code 架构，已复制汉化脚本但未自动执行${NC}`);
+    console.log(`${YELLOW}可稍后手动执行: node "${path.join(localizeDir, 'localize.js')}"${NC}`);
   }
 }
 
@@ -482,7 +484,13 @@ function runDiagnostics() {
             console.log(`${GREEN}  command: ${hookConfig.hooks[0].command}${NC}`);
 
             // 验证命令路径指向的文件是否存在
-            const cmdPath = hookConfig.hooks[0].command.replace(/\//g, path.sep);
+            const command = hookConfig.hooks[0].command;
+            let cmdPath = command;
+            if (IS_WIN && command.includes(' ')) {
+              const parts = command.split(/\s+/);
+              cmdPath = parts[parts.length - 1];
+            }
+            cmdPath = cmdPath.replace(/\//g, path.sep);
             if (fs.existsSync(cmdPath)) {
               console.log(`${GREEN}  命令路径有效${NC}`);
             } else {
@@ -638,7 +646,7 @@ function main() {
     console.log(`${CYAN}  如遇问题运行: cute-claude-hooks-install --verify${NC}`);
   }
 
-  console.log(`${CYAN}  文档: https://github.com/gugug168/cute-claude-hooks${NC}\n`);
+  console.log(`${CYAN}  文档: https://github.com/lyunzhong25-lang/cute-claude-hooks${NC}\n`);
 }
 
 main();
