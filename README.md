@@ -90,7 +90,7 @@
 ### 方式一：GitHub 最新版安装（推荐）
 
 ```bash
-npm install -g github:lyunzhong25-lang/cute-claude-hooks --install-links=false --force
+npm install -g https://github.com/lyunzhong25-lang/cute-claude-hooks/archive/refs/heads/master.tar.gz --force
 ```
 
 安装完成后会自动执行安装脚本。若需要重新修复配置，可再运行：
@@ -105,7 +105,7 @@ cute-claude-hooks-install
 cute-claude-hooks-restore
 ```
 
-> Windows 上使用 GitHub 安装时建议保留 `--install-links=false`，避免 npm 把全局命令链接到临时缓存目录。
+> 推荐使用上面的 GitHub `.tar.gz` 地址安装，避免 `github:用户名/仓库` 在部分电脑上走 SSH 导致 Permission denied。
 
 ### 方式二：NPM 正式版安装
 
