@@ -2,9 +2,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Compatible-orange.svg)](https://claude.ai/code)
-[![npm version](https://img.shields.io/npm/v/cute-claude-hooks.svg)](https://www.npmjs.com/package/cute-claude-hooks)
-[![Cross Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](https://github.com/gugug168/cute-claude-hooks)
-[![GitHub Actions](https://github.com/gugug168/cute-claude-hooks/actions/workflows/test-localization.yml/badge.svg)](https://github.com/gugug168/cute-claude-hooks/actions/workflows/test-localization.yml)
+[![npm version](https://img.shields.io/npm/v/lyunzhong-cute-claude-hooks.svg)](https://www.npmjs.com/package/lyunzhong-cute-claude-hooks)
+[![Cross Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](https://github.com/lyunzhong25-lang/cute-claude-hooks)
+[![GitHub Actions](https://github.com/lyunzhong25-lang/cute-claude-hooks/actions/workflows/test-localization.yml/badge.svg)](https://github.com/lyunzhong25-lang/cute-claude-hooks/actions/workflows/test-localization.yml)
 
 > 🌸 让 Claude Code 拥有完整的中文体验！中文提示 + 界面汉化，专为编程小白设计
 
@@ -87,10 +87,10 @@
 
 > 界面汉化需要修改 Claude Code 内部文件，目前仅通过 NPM 安装脚本自动完成，暂不提供手动安装方式。
 
-### 方式一：GitHub 最新版安装（推荐）
+### 方式一：国内镜像安装（推荐）
 
 ```bash
-npm install -g https://github.com/lyunzhong25-lang/cute-claude-hooks/archive/refs/heads/master.tar.gz --force
+npm install -g lyunzhong-cute-claude-hooks --registry=https://registry.npmmirror.com --force
 ```
 
 安装完成后会自动执行安装脚本。若需要重新修复配置，可再运行：
@@ -105,20 +105,18 @@ cute-claude-hooks-install
 cute-claude-hooks-restore
 ```
 
-> 推荐使用上面的 GitHub `.tar.gz` 地址安装，避免 `github:用户名/仓库` 在部分电脑上走 SSH 导致 Permission denied。
+> 如果 npmmirror 暂时还没同步最新版本，等几分钟后重试，或临时使用下面的 GitHub 安装方式。
 
-### 方式二：NPM 正式版安装
+### 方式二：NPM 官方源安装
 
 ```bash
-npm install -g cute-claude-hooks
-cute-claude-hooks-install
+npm install -g lyunzhong-cute-claude-hooks --force
 ```
 
-### 方式三：国内加速安装
+### 方式三：GitHub 最新版安装
 
 ```bash
-npm install -g cute-claude-hooks --registry=https://registry.npmmirror.com
-cute-claude-hooks-install
+npm install -g https://github.com/lyunzhong25-lang/cute-claude-hooks/archive/refs/heads/master.tar.gz --force
 ```
 
 ### 安装选项
@@ -192,7 +190,7 @@ mkdir -Force "$env:USERPROFILE\.claude\hooks"
 
 # 复制脚本（替换为你的 npm 全局目录）
 $npmDir = (npm root -g).Trim()
-copy "$npmDir\cute-claude-hooks\tool-tips-post.sh" "$env:USERPROFILE\.claude\hooks\"
+copy "$npmDir\lyunzhong-cute-claude-hooks\tool-tips-post.sh" "$env:USERPROFILE\.claude\hooks\"
 ```
 
 ### 步骤二：确认 bash 可用
@@ -324,7 +322,7 @@ cute-claude-hooks/
 
 本项目使用 GitHub Actions 进行跨平台自动测试：
 
-[![Test Claude Code Localization](https://github.com/gugug168/cute-claude-hooks/actions/workflows/test-localization.yml/badge.svg)](https://github.com/gugug168/cute-claude-hooks/actions/workflows/test-localization.yml)
+[![Test Claude Code Localization](https://github.com/lyunzhong25-lang/cute-claude-hooks/actions/workflows/test-localization.yml/badge.svg)](https://github.com/lyunzhong25-lang/cute-claude-hooks/actions/workflows/test-localization.yml)
 
 | 平台 | 状态 | 测试内容 |
 |-----|------|---------|
@@ -389,7 +387,7 @@ cute-claude-hooks/
 ---
 
 <p align="center">
-  Made with 🌸 by <a href="https://github.com/gugug168">gugug168</a>
+  Made with 🌸 by <a href="https://github.com/lyunzhong25-lang">lyunzhong25-lang</a>
 </p>
 
 <p align="center">

@@ -32,12 +32,7 @@ const localizeDir = path.join(claudeDir, 'localize');
 const settingsFile = path.join(claudeDir, 'settings.json');
 
 // 获取 npm 包目录
-let npmDir;
-try {
-  npmDir = path.dirname(require.resolve('cute-claude-hooks/package.json'));
-} catch (e) {
-  npmDir = path.resolve(__dirname, '..');
-}
+const npmDir = path.resolve(__dirname, '..');
 
 console.log(`${CYAN}包目录: ${npmDir}${NC}`);
 console.log(`${CYAN}系统: ${IS_WIN ? 'Windows' : process.platform}${NC}`);
